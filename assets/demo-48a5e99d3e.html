@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Tracker demo</title>
+<style>
+  :root{
+    --bg:#FFF6F5; --card:#FFFFFF; --line:#F0DCDC; --grid:#F5E7E7;
+    --brand:#8C2F45; --mark:#B5475A; --mark-soft:rgba(181,71,90,.10);
+    --ink:#3E2229; --ink2:#7A5058; --ink3:#A4777F;
+    --s1:#8C2F45; --s2:#C9798A; --s3:#6B4A63; --s4:#D9B8C4; --s5:#A4777F;
+    --ok-bg:#E6F1EA; --ok:#2F6B45; --warn-bg:#EFE7F1; --warn:#6B4A63;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:Inter, "IBM Plex Sans", Arial, sans-serif; font-size:14px;}
+  .nav{background:var(--card); border-bottom:1px solid var(--line); padding:12px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .brand{font-family:Georgia, serif; font-size:19px; font-weight:bold; color:var(--brand);}
+  .views{display:flex; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:3px;}
+  .views button{border:none; background:none; border-radius:999px; padding:6px 14px; font:inherit; font-size:13px; color:var(--ink2); cursor:pointer;}
+  .views button.on{background:var(--brand); color:#fff;}
+  button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
+  .sample{font-size:11px; color:var(--ink2); background:var(--card); border:1px dashed var(--mark); border-radius:999px; padding:3px 10px;}
+  .wrap{padding:20px 22px 28px;}
+  .hidden{display:none !important;}
+  h1{font-family:Georgia, serif; color:var(--brand); font-size:24px; margin:0;}
+  .head{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px;}
+  .sub{font-size:12px; color:var(--ink3); margin-top:2px;}
+  .filters{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;}
+  .filters .fl{font-size:12px; color:var(--ink2);}
+  select, input[type=search]{font:inherit; font-size:13px; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:10px; padding:7px 10px;}
+  .link-btn{border:none; background:none; color:var(--brand); font:inherit; font-size:12px; text-decoration:underline; cursor:pointer;}
+  .tiles{display:grid; grid-template-columns:repeat(6,1fr); gap:10px;}
+  .tile{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:11px 13px;}
+  .tile .l{font-size:11px; color:var(--ink2); line-height:1.3; min-height:28px;}
+  .tile .v{font-size:24px; font-weight:600; margin-top:2px;}
+  .tabs{display:flex; gap:6px; margin:10px 0 14px; overflow-x:auto; padding:4px 2px;}
+  .tabs button{position:relative; border:1px solid var(--line); background:var(--card); font:inherit; font-size:13px; color:var(--ink); padding:8px 16px; border-radius:999px; cursor:pointer; white-space:nowrap; box-shadow:0 1px 2px rgba(62,34,41,.06);}
+  .tabs button:hover{border-color:var(--mark); color:var(--brand);}
+  .tabs button:not(.seen)::after{content:""; position:absolute; top:5px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--mark);}
+  .tabs button.next{animation:nudge 1.6s ease-in-out infinite;}
+  @keyframes nudge{0%,100%{box-shadow:0 0 0 0 rgba(181,71,90,.35);}50%{box-shadow:0 0 0 6px rgba(181,71,90,0);}}
+  @media (prefers-reduced-motion: reduce){ .tabs button.next{animation:none; border-color:var(--mark);} }
+  .guide{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:16px; background:var(--card); border:1px dashed var(--mark); border-radius:12px; padding:9px 14px; font-size:13px; color:var(--ink);}
+  .guide b{color:var(--brand);}
+  .guide .count{font-size:12px; color:var(--ink2); white-space:nowrap;}
+  .views-hint{font-size:11.5px; color:var(--ink2);}
+  .tabs button.on{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600;}
+  .tabs button.on::after{display:none;}
+  .insights{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px;}
+  .ins{background:var(--card); border:1px solid var(--line); border-left:3px solid var(--mark); border-radius:12px; padding:11px 13px; text-align:left; font:inherit; color:inherit; cursor:pointer; display:flex; flex-direction:column; gap:3px;}
+  .ins:hover{background:#FFFBFB;}
+  .ins .iv{font-size:22px; font-weight:600; color:var(--brand);}
+  .ins .il{font-size:12px; color:var(--ink2); line-height:1.35;}
+  .ins .ik{font-size:11.5px; color:var(--mark); margin-top:auto; padding-top:4px;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px 14px; position:relative; min-width:0;}
+  .card.wide{grid-column:1 / -1;}
+  .ct{font-weight:600; font-size:13.5px; margin-bottom:8px;}
+  .cs{font-weight:400; font-size:11.5px; color:var(--ink3); margin-left:6px;}
+  .note{font-size:11.5px; color:var(--ink3); margin:6px 0 0; line-height:1.45;}
+  .lede{font-size:12px; color:var(--ink2); margin:0 0 10px; line-height:1.45;}
+  .hb-row{display:grid; grid-template-columns:110px 1fr; align-items:center; gap:8px; margin:5px 0; font-size:12.5px;}
+  .hb-row.long{grid-template-columns:165px 1fr;}
+  .hb-row .lab{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink2);}
+  .track{position:relative; display:flex; align-items:center; gap:6px;}
+  .bar{display:block; height:14px; background:var(--mark); border-radius:0 4px 4px 0; min-width:2px;}
+  .bar.alt{background:var(--s3);}
+  .val{font-size:12px; color:var(--ink); min-width:38px;}
+  .daily{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:10px; border-top:1px solid var(--grid); padding-top:10px;}
+  .daily div{display:flex; flex-direction:column;}
+  .dl{font-size:11px; color:var(--ink3);} .dv{font-size:17px; font-weight:600;} .ds{font-size:11px; color:var(--ink3);}
+  .donut{display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+  .legend{display:flex; flex-direction:column; gap:6px; font-size:12.5px;}
+  .legend span{display:flex; align-items:center; gap:7px;}
+  .legend i{width:10px; height:10px; border-radius:3px; display:inline-block;}
+  .tw{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th{text-align:left; font-weight:600; color:var(--ink2); font-size:11.5px; padding:5px 10px 7px 0; border-bottom:1px solid var(--line); white-space:nowrap;}
+  td{padding:6px 10px 6px 0; border-bottom:1px solid var(--grid); vertical-align:top;}
+  td.n, th.n{text-align:right;}
+  tr.tot td{font-weight:600; border-top:1px solid var(--line); border-bottom:none;}
+  .flag{font-size:11px; background:var(--mark-soft); color:var(--brand); border-radius:999px; padding:1px 8px; white-space:nowrap;}
+  .flag.hot{background:var(--brand); color:#fff;}
+  .chip{font-size:11px; border-radius:999px; padding:2px 8px; white-space:nowrap;}
+  .chip.active{background:var(--ok-bg); color:var(--ok);} .chip.expired{background:var(--warn-bg); color:var(--warn);}
+  .stage{font-size:11px; border-radius:999px; padding:1px 8px; background:#F7EEF0; color:var(--ink2); white-space:nowrap;}
+  .rates{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;}
+  .rates div{background:var(--bg); border-radius:10px; padding:8px 10px; display:flex; flex-direction:column;}
+  .funnel-row{display:grid; grid-template-columns:150px 1fr; gap:8px; align-items:center; margin:6px 0; font-size:12.5px;}
+  .vbars{display:flex; align-items:flex-end; gap:10px; height:150px; padding-top:8px;}
+  .vb{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px; font-size:11.5px; color:var(--ink2);}
+  .vb .col{width:100%; max-width:46px; background:var(--mark); border-radius:4px 4px 0 0;}
+  .vb.top .col{background:var(--brand);}
+  .vb b{font-size:11.5px; color:var(--ink); font-weight:600;}
+  .empty{font-size:12.5px; color:var(--ink3); padding:10px 0;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px;}
+  .lcard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .lcard .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .lcard .name{font-weight:600;} .lcard .area{font-size:12px; color:var(--ink2);}
+  .lcard .nt{font-size:12px; color:var(--ink3); margin-top:6px;}
+  .lcard .meta{display:flex; justify-content:space-between; font-size:12px; color:var(--ink2); margin-top:8px; border-top:1px solid var(--grid); padding-top:6px;}
+  .tip{position:absolute; pointer-events:none; background:var(--ink); color:#fff; font-size:12px; padding:6px 9px; border-radius:8px; opacity:0; transition:opacity .1s; z-index:9; max-width:240px; line-height:1.4;}
+  @media (max-width:820px){ .tiles{grid-template-columns:repeat(3,1fr);} .insights{grid-template-columns:1fr 1fr;} .grid{grid-template-columns:1fr;} .daily{grid-template-columns:repeat(3,1fr);} .rates{grid-template-columns:1fr 1fr;} }
+  @media (max-width:480px){ .tiles{grid-template-columns:1fr 1fr;} .insights{grid-template-columns:1fr;} .wrap{padding:16px;} }
+</style>
+</head>
+<body>
+<div class="nav">
+  <span class="brand">Property Tracker</span>
+  <div class="views" role="tablist">
+    <button class="on" data-view="dash" role="tab" aria-selected="true">Lead dashboard</button>
+    <button data-view="list" role="tab" aria-selected="false">Listings</button>
+  </div>
+  <span class="views-hint">Also try the <b>Listings</b> view</span>
+  <span class="sample">Demo · sample data only</span>
+</div>
+
+<div class="wrap" id="view-dash">
+  <div class="head">
+    <div><h1>Lead dashboard</h1><div class="sub">Enquiries from every listing channel, synced from one sheet</div></div>
+  </div>
+  <div class="filters">
+    <span class="fl">Month:</span>
+    <select id="f-month" aria-label="Month"><option value="all">Jul – Sep 2026</option><option value="6">July 2026</option><option value="7">August 2026</option><option value="8" selected>September 2026</option></select>
+    <span class="fl">Who:</span>
+    <select id="f-who" aria-label="Enquirer type"><option value="all">All</option><option>Customer</option><option>Agent</option></select>
+    <input type="search" id="f-prop" placeholder="Search property…" aria-label="Search property">
+    <button class="link-btn hidden" id="f-clear">Clear filters</button>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="l">Total leads (in range)</div><div class="v" id="k-total"></div></div>
+    <div class="tile"><div class="l">Follow-up</div><div class="v" id="k-fu"></div></div>
+    <div class="tile"><div class="l">Active (Follow-up + Pending + Check)</div><div class="v" id="k-active"></div></div>
+    <div class="tile"><div class="l">Schedule rate (customers)</div><div class="v" id="k-sched"></div></div>
+    <div class="tile"><div class="l">View rate (customers)</div><div class="v" id="k-view"></div></div>
+    <div class="tile"><div class="l">Drop rate (5+ day leads)</div><div class="v" id="k-drop"></div></div>
+  </div>
+
+  <div class="guide" id="guide"><span>👆 <b>Click the tabs below</b> to explore six views of the same leads. The dot marks views you haven't opened yet.</span><span class="count" id="guide-count">1 of 6 views explored</span></div>
+  <div class="tabs" role="tablist">
+    <button class="on" data-tab="overview">Overview</button>
+    <button data-tab="listings">Listings</button>
+    <button data-tab="platforms">Platforms &amp; timing</button>
+    <button data-tab="pipeline">Pipeline</button>
+    <button data-tab="people">People</button>
+    <button data-tab="reasons">Reasons</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="panel" id="tab-overview">
+    <div class="insights">
+      <button class="ins" data-go="listings"><span class="iv" id="i-exp"></span><span class="il" id="i-exp-l"></span><span class="ik">By listing →</span></button>
+      <button class="ins" data-go="people"><span class="iv" id="i-hot"></span><span class="il">hot buyers: customers with 3+ enquiries or a repeat in the last 14 days</span><span class="ik">Call list →</span></button>
+      <button class="ins" data-go="pipeline"><span class="iv" id="i-sched"></span><span class="il" id="i-sched-l"></span><span class="ik">Pipeline →</span></button>
+      <button class="ins" data-go="platforms"><span class="iv" id="i-wd"></span><span class="il" id="i-wd-l"></span><span class="ik">Timing →</span></button>
+    </div>
+    <div class="grid">
+      <div class="card wide"><div class="ct">Leads per day<span class="cs">dashed line = daily average</span></div><div id="c-line"></div><div class="daily" id="c-daily"></div></div>
+      <div class="card"><div class="ct">Leads by source</div><div id="c-source"></div></div>
+      <div class="card"><div class="ct">Agent vs customer</div><div id="c-type"></div></div>
+      <div class="card"><div class="ct" id="c-pipe-t">Pipeline</div><div id="c-pipe"></div><p class="note">Every lead sits in exactly one stage, in pipeline order.</p></div>
+      <div class="card"><div class="ct">Property type interest</div><div id="c-ptype"></div></div>
+      <div class="card"><div class="ct">Most-enquired properties<span class="cs">active listings</span></div><div id="c-topa"></div></div>
+      <div class="card"><div class="ct">Most-enquired properties<span class="cs">expired listings</span></div><div id="c-tope"></div></div>
+    </div>
+  </div>
+
+  <!-- LISTINGS -->
+  <div class="panel hidden" id="tab-listings">
+    <div class="card"><div class="ct" id="l-exp-t">Leads lost to expired listings</div><p class="lede" id="l-exp-lede"></p><div class="tw" id="l-exp"></div></div>
+    <div class="card" style="margin-top:10px"><div class="ct" id="l-att-t">Listings needing attention</div><p class="lede" id="l-att-lede"></p><div class="tw" id="l-att"></div></div>
+    <div class="card" style="margin-top:10px"><div class="ct">Leads by property</div><p class="lede">Every property with enquiries in the period, split by enquirer and current stage.</p><div class="tw" id="l-prop"></div></div>
+  </div>
+
+  <!-- PLATFORMS -->
+  <div class="panel hidden" id="tab-platforms">
+    <div class="card"><div class="ct">Platform scorecard</div><p class="lede">How each channel performs for customers, from enquiry to viewing. Lost to expired = leads whose listing had already lapsed on that channel.</p><div class="tw" id="p-score"></div></div>
+    <div class="grid">
+      <div class="card"><div class="ct">Average leads by weekday</div><div id="p-wd"></div><p class="note">Average per calendar day of that weekday in the period, so a month with five Saturdays doesn't overstate Saturday.</p></div>
+      <div class="card"><div class="ct">Agent vs customer, by platform</div><div class="tw" id="p-av"></div></div>
+    </div>
+  </div>
+
+  <!-- PIPELINE -->
+  <div class="panel hidden" id="tab-pipeline">
+    <div class="card"><div class="ct" id="pp-t">Customer pipeline</div><p class="lede">Customers only (agents excluded). Scheduled and Viewed come from the follow-up note; scheduling wins. A lead handed back to the agent counts as Pending.</p>
+      <div class="rates" id="pp-rates"></div><div id="pp-funnel"></div></div>
+    <div class="grid">
+      <div class="card"><div class="ct" id="pp-pend-t">Pending breakdown</div><p class="lede">What Pending customers are waiting on.</p><div class="tw" id="pp-pend"></div></div>
+      <div class="card"><div class="ct">Pipeline by property</div><p class="lede">Properties with 3+ customer leads, best schedule rate first.</p><div class="tw" id="pp-prop"></div></div>
+    </div>
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="panel hidden" id="tab-people">
+    <div class="card"><div class="ct" id="pe-rep-t">Repeat customers &amp; hot buyers</div><p class="lede">Customers who enquired more than once, matched by mobile number. Hot = 3+ enquiries, or a repeat in the last 14 days. This is the call list.</p><div class="tw" id="pe-rep"></div></div>
+    <div class="card" style="margin-top:10px"><div class="ct" id="pe-ag-t">Repeat agents</div><p class="lede">Co-broking agents who asked about our listings more than once.</p><div class="tw" id="pe-ag"></div></div>
+    <div class="card" style="margin-top:10px"><div class="ct" id="pe-list-t">Lead list</div><p class="lede">Latest 12 leads matching the filters. Names and numbers are masked in this demo.</p><div class="tw" id="pe-list"></div></div>
+  </div>
+
+  <!-- REASONS -->
+  <div class="panel hidden" id="tab-reasons">
+    <div class="grid">
+      <div class="card"><div class="ct">Why leads drop or close</div><div id="r-chart"></div></div>
+      <div class="card"><div class="ct">Reasons, grouped</div><p class="lede">Free-text follow-up notes, typos and variants included, rolled up into groups so they can be counted.</p><div class="tw" id="r-table"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap hidden" id="view-list">
+  <div class="head"><div><h1>Listings</h1><div class="sub" id="ls-count"></div></div></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search by name or area" aria-label="Search listings">
+    <select id="ls-type" aria-label="Property type"><option value="">All types</option></select>
+    <select id="ls-status" aria-label="Status"><option value="">All statuses</option><option>Active</option><option>Expired</option></select>
+  </div>
+  <div class="cards" id="cards"></div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+// ---------- Sample data (invented; seeded so it looks the same every time) ----------
+let seed = 11;
+function rnd(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+function pick(arr, w){ const t=w.reduce((a,b)=>a+b,0); let r=rnd()*t; for(let i=0;i<arr.length;i++){ r-=w[i]; if(r<=0) return arr[i]; } return arr[arr.length-1]; }
+
+const LISTINGS = [
+  {name:"Maple Grove Residences", area:"Bukit Timah", type:"Condo", status:"Active", price:"S$ 1.62M", beds:3, note:"Corner unit, owner prefers weekday viewings", pop:3.2, ch:["A","B"]},
+  {name:"Harbourlight Suites", area:"Tanjong Pagar", type:"Condo", status:"Active", price:"S$ 1.18M", beds:2, note:"Tenanted until March", pop:2.6, ch:["A","B","C"]},
+  {name:"Cedar Park View", area:"Tampines", type:"HDB", status:"Active", price:"S$ 612K", beds:3, note:"Recently renovated kitchen", pop:2.2, ch:["A","B"]},
+  {name:"Lumen Terrace", area:"Serangoon", type:"Landed", status:"Active", price:"S$ 3.45M", beds:5, note:"Keys with agent", pop:0.5, ch:["A"]},
+  {name:"Riverbend Court", area:"Kallang", type:"Condo", status:"Expired", price:"S$ 980K", beds:1, note:"Relist after price review", pop:2.4, ch:["A","B"]},
+  {name:"Orchid Hill Block 12", area:"Punggol", type:"HDB", status:"Active", price:"S$ 548K", beds:4, note:"MOP reached", pop:1.9, ch:["B","C"]},
+  {name:"Northpoint Studios", area:"Yishun", type:"Condo", status:"Active", price:"S$ 720K", beds:1, note:"Good for first-time buyers", pop:1.5, ch:["A","B"]},
+  {name:"Sunhaven Shophouse", area:"Joo Chiat", type:"Commercial", status:"Active", price:"S$ 4.10M", beds:0, note:"Ground floor F&B allowed", pop:0.4, ch:["C"]},
+  {name:"Palm Crest Villas", area:"Upper Thomson", type:"Landed", status:"Expired", price:"S$ 2.90M", beds:4, note:"Owner paused sale", pop:1.1, ch:["A"]},
+  {name:"Westgate Lofts", area:"Jurong East", type:"Condo", status:"Active", price:"S$ 1.05M", beds:2, note:"Near MRT, high floor", pop:1.8, ch:["A","B"]},
+  {name:"Seabreeze Block 5", area:"Pasir Ris", type:"HDB", status:"Expired", price:"S$ 499K", beds:3, note:"Listing ended in August", pop:1.6, ch:["B"]},
+  {name:"Merchant Point Office", area:"Raffles Place", type:"Commercial", status:"Active", price:"S$ 2.20M", beds:0, note:"Fitted office, 1,100 sq ft", pop:0.7, ch:["C"]}
+];
+const SRC = {A:"Listing site A", B:"Listing site B", C:"Listing site C"};
+const SOURCES = ["Listing site A","Listing site B","Listing site C"];
+const STAGES = ["Scheduled","Viewed","Follow-up","Pending","Check","Drop"];
+const PENDING = ["Handed to the agent","Awaiting customer reply","Owner to confirm"];
+const REASONS = {
+  "Property expired":["Property expired","property expire","Expired listing"],
+  "No WhatsApp contact":["No whatsapp","Nowhatsapp","Whatsapp error"],
+  "No matching property":["No match property","no match"],
+  "No longer needs property":["No need","Found another unit, no need"],
+  "Awaiting customer reply":["Waiting reply","No reply yet"],
+  "Handed to the agent":["Let agent follow","agent follow?"],
+  "Scheduled":["Scheduled","Scheduled, let agent follow"],
+  "Unit viewed":["Viewed","Viewrd"],
+  "Missing property info":["No property name"],
+  "Agent":["Agent","Agent,"]
+};
+const NOW = new Date(2026, 8, 30);
+const START = new Date(2026, 6, 1);
+const LEADS = [];
+let pid = 1001; const custPool = [], agentPool = [];
+for(let d=0; d<92; d++){
+  const date = new Date(START.getTime() + d*86400000);
+  const dow = date.getDay();
+  const base = 3.0 + d*0.03 + (dow===6||dow===0 ? 1.8 : (dow===3 ? 0.8 : 0));
+  const n = Math.max(0, Math.round(base + (rnd()-0.5)*3.4));
+  for(let i=0;i<n;i++){
+    const L = pick(LISTINGS, LISTINGS.map(l=>l.pop));
+    const ch = L.ch[Math.floor(rnd()*L.ch.length)];
+    const who = rnd() < 0.22 ? "Agent" : "Customer";
+    const pool = who==="Agent" ? agentPool : custPool;
+    let person;
+    if(pool.length > 15 && rnd() < (who==="Agent" ? 0.35 : 0.17)){ person = pool[Math.floor(rnd()*pool.length)]; }
+    else { person = pid++; pool.push(person); }
+    const age = Math.round((NOW - date)/86400000);
+    const expired = L.status==="Expired" && (L.name!=="Seabreeze Block 5" || d>40);
+    let stage, reason="", pend=null;
+    if(who==="Agent"){ stage = pick(STAGES,[0,0,1,1,1,4]); reason = "Agent"; }
+    else if(expired && rnd()<0.8){ stage="Drop"; reason="Property expired"; }
+    else if(age < 5){ stage = pick(STAGES,[1,0,5,2,3,0]); }
+    else { stage = pick(STAGES,[2.2,1.4,2.4,2.0,1.0,3.2]); }
+    if(who==="Customer" && !reason){
+      if(stage==="Scheduled") reason = "Scheduled";
+      else if(stage==="Viewed") reason = "Unit viewed";
+      else if(stage==="Pending"){ pend = pick(PENDING,[4,3,1]); reason = pend==="Handed to the agent" ? "Handed to the agent" : (pend==="Awaiting customer reply" ? "Awaiting customer reply" : ""); }
+      else if(stage==="Drop") reason = pick(["No WhatsApp contact","No matching property","No longer needs property","Missing property info"],[4,3,3,1]);
+    }
+    const raw = reason ? REASONS[reason][Math.floor(rnd()*REASONS[reason].length)] : "";
+    LEADS.push({d, month:date.getMonth(), date, dow, listing:L.name, status:L.status, ptype:L.type, source:SRC[ch], who, person, stage, reason, raw, pend, age});
+  }
+}
+
+// ---------- Helpers ----------
+const $ = id => document.getElementById(id);
+const tip = $("tip");
+function showTip(html, x, y){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = x + 14, top = y - h - 10;
+  if(left + w > window.innerWidth - 8) left = x - w - 14;
+  if(top < 4) top = y + 16;
+  tip.style.left = left + "px"; tip.style.top = (top + window.scrollY) + "px";
+}
+function hideTip(){ tip.style.opacity = 0; }
+const pct = (a,b) => b ? Math.round(a/b*100) : null;
+const fmtP = v => v==null ? "–" : v + "%";
+const fmtD = d => d.toLocaleDateString("en-GB",{day:"numeric", month:"short"});
+function countBy(rows, fn, order){ const m=new Map(); (order||[]).forEach(k=>m.set(k,0)); rows.forEach(r=>{ const k=fn(r); if(k==null||k==="") return; m.set(k,(m.get(k)||0)+1); }); return [...m.entries()].map(([label,value])=>({label,value})); }
+const mask = id => "+65 9" + "••• ••" + String(id).slice(-2);
+const COLORS = ["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)"];
+
+function hbars(el, data, opts={}){
+  const total = data.reduce((a,b)=>a+b.value,0) || 1;
+  const max = Math.max(1, ...data.map(d=>d.value));
+  el.innerHTML = data.length ? "" : '<div class="empty">No leads in this range.</div>';
+  data.forEach(d=>{
+    const row = document.createElement("div");
+    row.className = "hb-row" + (opts.long ? " long" : "");
+    row.innerHTML = `<span class="lab" title="${d.label}">${d.label}</span><span class="track"><span class="bar${opts.alt?' alt':''}" style="width:calc((100% - 44px) * ${d.value/max})"></span><span class="val">${d.value}</span></span>`;
+    row.addEventListener("mousemove", e=> showTip(`<b>${d.label}</b><br>${d.value} · ${Math.round(d.value/total*100)}% of ${opts.of||"leads"}`, e.clientX, e.clientY));
+    row.addEventListener("mouseleave", hideTip);
+    el.appendChild(row);
+  });
+}
+function donut(el, data){
+  const total = data.reduce((a,b)=>a+b.value,0);
+  if(!total){ el.innerHTML='<div class="empty">No leads in this range.</div>'; return; }
+  const R=52, r=32, cx=60, cy=60; let a0=-Math.PI/2, paths="";
+  data.forEach((d,i)=>{
+    const a1 = a0 + d.value/total*Math.PI*2; const large = a1-a0>Math.PI?1:0;
+    const p = (rad,ang)=>[cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)];
+    const [x0,y0]=p(R,a0),[x1,y1]=p(R,a1),[x2,y2]=p(r,a1),[x3,y3]=p(r,a0);
+    const full = d.value===total;
+    paths += full ? `<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="${COLORS[i%5]}" stroke-width="${R-r}" data-i="${i}"/>`
+      : `<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${large} 0 ${x3},${y3} Z" fill="${COLORS[i%5]}" stroke="#fff" stroke-width="1.5" data-i="${i}"/>`;
+    a0=a1;
+  });
+  el.innerHTML = `<div class="donut"><svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Donut chart">${paths}<text x="60" y="58" text-anchor="middle" font-size="18" font-weight="600" fill="var(--ink)">${total}</text><text x="60" y="73" text-anchor="middle" font-size="10" fill="var(--ink3)">leads</text></svg>
+    <div class="legend">${data.map((d,i)=>`<span><i style="background:${COLORS[i%5]}"></i>${d.label} <b>${d.value}</b> <span style="color:var(--ink3)">${Math.round(d.value/total*100)}%</span></span>`).join("")}</div></div>`;
+  el.querySelectorAll("[data-i]").forEach(s=>{ const d=data[+s.dataset.i];
+    s.addEventListener("mousemove", e=>showTip(`<b>${d.label}</b><br>${d.value} leads · ${Math.round(d.value/total*100)}%`, e.clientX, e.clientY)); s.addEventListener("mouseleave", hideTip); });
+}
+function vbars(el, data, fmt){
+  const max = Math.max(0.1, ...data.map(d=>d.value)); const top = data.reduce((a,b)=>b.value>a.value?b:a, data[0]);
+  el.innerHTML = `<div class="vbars">${data.map(d=>`<div class="vb${d===top?' top':''}" data-l="${d.label}" data-v="${d.value}"><b>${fmt(d.value)}</b><div class="col" style="height:${Math.max(2,d.value/max*110)}px"></div><span>${d.label}</span></div>`).join("")}</div>`;
+  el.querySelectorAll(".vb").forEach(b=>{ b.addEventListener("mousemove", e=>showTip(`<b>${b.dataset.l}</b><br>${fmt(+b.dataset.v)} leads on average`, e.clientX, e.clientY)); b.addEventListener("mouseleave", hideTip); });
+}
+function lineChart(el, series, avg){
+  const W = el.clientWidth || 600, H = 170, P = {l:32, r:12, t:10, b:22};
+  const max = Math.max(4, ...series.map(s=>s.v)); const niceMax = Math.ceil(max/4)*4;
+  const x = i => P.l + (series.length<2 ? 0 : i*(W-P.l-P.r)/(series.length-1));
+  const y = v => P.t + (H-P.t-P.b)*(1 - v/niceMax);
+  let g = "";
+  for(let k=0;k<=4;k++){ const v=niceMax*k/4, yy=y(v); g += `<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${P.l-6}" y="${yy+4}" font-size="10.5" fill="var(--ink3)" text-anchor="end">${v}</text>`; }
+  const step = Math.max(1, Math.ceil(series.length / Math.max(2, Math.floor((W-P.l-P.r)/64))));
+  series.forEach((s,i)=>{ if(i%step===0) g += `<text x="${x(i)}" y="${H-5}" font-size="10.5" fill="var(--ink3)" text-anchor="middle">${fmtD(s.date)}</text>`; });
+  const pts = series.map((s,i)=>`${x(i)},${y(s.v)}`).join(" ");
+  const area = `${x(0)},${y(0)} ${pts} ${x(series.length-1)},${y(0)}`;
+  const ay = y(avg);
+  el.innerHTML = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Leads per day">${g}
+    <polygon points="${area}" fill="var(--mark-soft)"/><polyline points="${pts}" fill="none" stroke="var(--mark)" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="${P.l}" x2="${W-P.r}" y1="${ay}" y2="${ay}" stroke="var(--s3)" stroke-dasharray="4 4"/><text x="${W-P.r}" y="${ay-4}" font-size="10.5" fill="var(--s3)" text-anchor="end">avg ${avg.toFixed(1)}</text>
+    <line id="xh" y1="${P.t}" y2="${H-P.b}" stroke="var(--ink3)" opacity="0"/><circle id="xd" r="4.5" fill="var(--mark)" stroke="#fff" stroke-width="2" opacity="0"/>
+    <rect x="${P.l}" y="0" width="${W-P.l-P.r}" height="${H}" fill="transparent" id="hit"/></svg>`;
+  const svg=el.querySelector("svg"), hit=el.querySelector("#hit"), xh=el.querySelector("#xh"), xd=el.querySelector("#xd");
+  hit.addEventListener("mousemove", e=>{ const rc=svg.getBoundingClientRect(); const px=(e.clientX-rc.left)*(W/rc.width);
+    const i=Math.max(0,Math.min(series.length-1,Math.round((px-P.l)/((W-P.l-P.r)/Math.max(1,series.length-1))))); const s=series[i];
+    xh.setAttribute("x1",x(i)); xh.setAttribute("x2",x(i)); xh.setAttribute("opacity",1); xd.setAttribute("cx",x(i)); xd.setAttribute("cy",y(s.v)); xd.setAttribute("opacity",1);
+    showTip(`<b>${s.date.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}</b><br>${s.v} lead${s.v===1?"":"s"}`, e.clientX, e.clientY); });
+  hit.addEventListener("mouseleave", ()=>{ xh.setAttribute("opacity",0); xd.setAttribute("opacity",0); hideTip(); });
+}
+function table(el, head, rows, opts={}){
+  if(!rows.length){ el.innerHTML = `<div class="empty">${opts.empty||"Nothing in this range."}</div>`; return; }
+  el.innerHTML = `<table><thead><tr>${head.map(h=>`<th class="${h.n?'n':''}">${h.t}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr class="${r.cls||''}">${r.c.map((c,i)=>`<td class="${head[i].n?'n':''}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+function stageOf(stages){ const o={}; STAGES.forEach(s=>o[s]=0); stages.forEach(r=>o[r.stage]++); return o; }
+
+// ---------- Filters ----------
+function filtered(ignoreWho){
+  const m = $("f-month").value, w = $("f-who").value, q = $("f-prop").value.trim().toLowerCase();
+  return LEADS.filter(r => (m==="all" || r.month===+m) && (ignoreWho || w==="all" || r.who===w) && (!q || r.listing.toLowerCase().includes(q)));
+}
+function monthDays(){ const m=$("f-month").value; return [...Array(92).keys()].filter(d=> m==="all" || new Date(START.getTime()+d*86400000).getMonth()===+m); }
+
+// ---------- Render ----------
+function render(){
+  const rows = filtered(false);
+  const cust = rows.filter(r=>r.who==="Customer");
+  $("f-clear").classList.toggle("hidden", $("f-who").value==="all" && !$("f-prop").value);
+  // KPIs
+  const st = stageOf(rows), cs = stageOf(cust);
+  $("k-total").textContent = rows.length;
+  $("k-fu").textContent = st["Follow-up"];
+  $("k-active").textContent = st["Follow-up"] + st["Pending"] + st["Check"];
+  const schedRate = pct(cs.Scheduled + cs.Viewed, cust.length), viewRate = pct(cs.Viewed, cust.length);
+  $("k-sched").textContent = fmtP(schedRate); $("k-view").textContent = fmtP(viewRate);
+  const mature = rows.filter(r=>r.age>=5);
+  $("k-drop").textContent = fmtP(pct(mature.filter(r=>r.stage==="Drop").length, mature.length));
+
+  // Insights
+  const expLost = rows.filter(r=>r.reason==="Property expired"), expCust = expLost.filter(r=>r.who==="Customer");
+  $("i-exp").textContent = expCust.length;
+  $("i-exp-l").textContent = `customer leads lost because the listing had expired (${fmtP(pct(expCust.length, cust.length))} of customers)`;
+  const reps = repeaters(cust); $("i-hot").textContent = reps.filter(c=>c.hot).length;
+  $("i-sched").textContent = fmtP(schedRate); $("i-sched-l").textContent = `of customers got a viewing scheduled (${fmtP(viewRate)} viewed)`;
+  const wd = weekdays(rows); const best = wd.reduce((a,b)=>b.value>a.value?b:a, wd[0]);
+  $("i-wd").textContent = best.label; $("i-wd-l").textContent = `busiest weekday: ${best.value.toFixed(1)} leads on average`;
+
+  // Overview charts
+  const days = monthDays(); const byDay = new Map(); rows.forEach(r=>byDay.set(r.d,(byDay.get(r.d)||0)+1));
+  const series = days.map(d=>({date:new Date(START.getTime()+d*86400000), v:byDay.get(d)||0}));
+  const vals = series.map(s=>s.v), sorted = vals.slice().sort((a,b)=>a-b);
+  const avg = vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length);
+  const med = sorted.length%2 ? sorted[(sorted.length-1)/2] : (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;
+  const mx = Math.max(...vals), mn = Math.min(...vals);
+  lineChart($("c-line"), series, avg);
+  $("c-daily").innerHTML = `<div><span class="dl">Average / day</span><span class="dv">${avg.toFixed(1)}</span></div><div><span class="dl">Median</span><span class="dv">${med%1?med.toFixed(1):med}</span></div>
+    <div><span class="dl">Busiest</span><span class="dv">${mx}</span><span class="ds">${fmtD(series[vals.indexOf(mx)].date)}</span></div><div><span class="dl">Quietest</span><span class="dv">${mn}</span><span class="ds">${fmtD(series[vals.indexOf(mn)].date)}</span></div>
+    <div><span class="dl">Days with 0</span><span class="dv">${vals.filter(v=>v===0).length}</span><span class="ds">of ${vals.length}</span></div>`;
+  donut($("c-source"), countBy(rows, r=>r.source, SOURCES));
+  donut($("c-type"), countBy(rows, r=>r.who, ["Customer","Agent"]));
+  $("c-pipe-t").textContent = `Pipeline (${rows.length} leads)`;
+  hbars($("c-pipe"), STAGES.map(s=>({label:s, value:st[s]})));
+  hbars($("c-ptype"), countBy(rows, r=>r.ptype, ["Condo","HDB","Landed","Commercial"]).sort((a,b)=>b.value-a.value), {alt:true});
+  hbars($("c-topa"), countBy(rows.filter(r=>r.status==="Active"), r=>r.listing).sort((a,b)=>b.value-a.value).slice(0,5), {long:true});
+  hbars($("c-tope"), countBy(rows.filter(r=>r.status==="Expired"), r=>r.listing).sort((a,b)=>b.value-a.value).slice(0,5), {long:true, alt:true});
+
+  // Listings tab
+  const byL = new Map(); expLost.forEach(r=>{ const e=byL.get(r.listing)||{n:0,c:0,a:0,r30:0,last:r.date}; e.n++; r.who==="Customer"?e.c++:e.a++; if(r.age<=30) e.r30++; if(r.date>e.last) e.last=r.date; byL.set(r.listing,e); });
+  $("l-exp-t").textContent = `Leads lost to expired listings (${byL.size} listings)`;
+  $("l-exp-lede").textContent = `${expLost.length} leads in this range (${fmtP(pct(expLost.length, rows.length))}) asked about a listing that had already lapsed, ${expCust.length} of them customers. The listings losing the most customers are the first to relist or match with a similar unit.`;
+  table($("l-exp"), [{t:"Property"},{t:"Lost leads",n:1},{t:"Customers",n:1},{t:"Agents",n:1},{t:"Lost in last 30 days",n:1},{t:"Last lost lead"}],
+    [...byL.entries()].sort((a,b)=>b[1].c-a[1].c).map(([k,e])=>({c:[k,e.n,`<b>${e.c}</b>`,e.a,e.r30,fmtD(e.last)]})), {empty:"No leads were lost to an expired listing in this range."});
+  const act = LISTINGS.filter(l=>l.status==="Active").map(l=>({l, rows:rows.filter(r=>r.listing===l.name)}));
+  const counts = act.map(a=>a.rows.length).sort((a,b)=>a-b); const lmed = counts.length%2?counts[(counts.length-1)/2]:(counts[counts.length/2-1]+counts[counts.length/2])/2;
+  const att = act.filter(a=>a.rows.length < lmed/2).sort((a,b)=>a.rows.length-b.rows.length);
+  $("l-att-t").textContent = `Listings needing attention (${att.length})`;
+  $("l-att-lede").textContent = `Active listings getting under half the median (${lmed%1?lmed.toFixed(1):lmed} enquiries) in this range. ${act.length} active listings checked. Review photos, price or description.`;
+  table($("l-att"), [{t:"Property"},{t:"Enquiries",n:1},{t:"Customers",n:1},{t:"Agents",n:1},{t:"Flag"},{t:"Last enquiry (any time)"}],
+    att.map(a=>{ const all=LEADS.filter(r=>r.listing===a.l.name); const last=all.length?all.reduce((x,y)=>y.date>x.date?y:x).date:null;
+      return {c:[a.l.name, a.rows.length, a.rows.filter(r=>r.who==="Customer").length, a.rows.filter(r=>r.who==="Agent").length, `<span class="flag">${a.rows.length?"Low interest":"No enquiries"}</span>`, last?fmtD(last):"–"]}; }),
+    {empty:"Every active listing is getting a normal share of enquiries."});
+  const props = [...new Set(rows.map(r=>r.listing))].map(n=>{ const rr=rows.filter(r=>r.listing===n); const s=stageOf(rr); const L=LISTINGS.find(l=>l.name===n);
+    return {n, L, t:rr.length, c:rr.filter(r=>r.who==="Customer").length, a:rr.filter(r=>r.who==="Agent").length, s}; }).sort((a,b)=>b.t-a.t);
+  const sum = k => props.reduce((a,p)=>a+(typeof k==="function"?k(p):p[k]),0);
+  table($("l-prop"), [{t:"Property"},{t:"Status"},{t:"Channels"},{t:"Enquiries",n:1},{t:"Customers",n:1},{t:"Agents",n:1},{t:"Drop",n:1},{t:"Follow-up",n:1},{t:"Pending",n:1},{t:"Check",n:1}],
+    props.map(p=>({c:[p.n, `<span class="chip ${p.L.status.toLowerCase()}">${p.L.status}</span>`, p.L.ch.map(c=>c).join(" · "), p.t, p.c, p.a, p.s.Drop, p.s["Follow-up"], p.s.Pending, p.s.Check]}))
+    .concat(props.length?[{cls:"tot", c:[`Total (${props.length} properties)`,"","",sum("t"),sum("c"),sum("a"),sum(p=>p.s.Drop),sum(p=>p.s["Follow-up"]),sum(p=>p.s.Pending),sum(p=>p.s.Check)]}]:[]), {empty:"No properties match."});
+
+  // Platforms tab
+  table($("p-score"), [{t:"Platform"},{t:"Leads",n:1},{t:"Customers",n:1},...STAGES.map(s=>({t:s,n:1})),{t:"Schedule rate",n:1},{t:"View rate",n:1},{t:"Drop rate",n:1},{t:"Lost to expired",n:1}],
+    SOURCES.map(src=>{ const rr=rows.filter(r=>r.source===src), cc=rr.filter(r=>r.who==="Customer"), s=stageOf(cc);
+      return {c:[`<b>${src}</b>`, `${rr.length} <span style="color:var(--ink3)">(${fmtP(pct(rr.length,rows.length))})</span>`, cc.length, ...STAGES.map(x=>s[x]), `<b>${fmtP(pct(s.Scheduled+s.Viewed,cc.length))}</b>`, `<b>${fmtP(pct(s.Viewed,cc.length))}</b>`, fmtP(pct(s.Drop,cc.length)), rr.filter(r=>r.reason==="Property expired").length]}; }));
+  vbars($("p-wd"), wd, v=>v.toFixed(1));
+  table($("p-av"), [{t:"Platform"},{t:"Agent",n:1},{t:"Customer",n:1},{t:"Customer share",n:1},{t:"Total",n:1}],
+    SOURCES.map(src=>{ const all=filtered(true).filter(r=>r.source===src); const a=all.filter(r=>r.who==="Agent").length, c=all.length-a; return {c:[src,a,c,fmtP(pct(c,all.length)),`<b>${all.length}</b>`]}; }));
+
+  // Pipeline tab
+  $("pp-t").textContent = `Customer pipeline (${cust.length} customers)`;
+  $("pp-rates").innerHTML = [["Schedule rate",schedRate,"Scheduled + Viewed"],["View rate",viewRate,"Viewed"],["Pending rate",pct(cs.Pending,cust.length),"incl. handed to the agent"],["Drop rate",pct(cs.Drop,cust.length),"stage Drop"]]
+    .map(([l,v,s])=>`<div><span class="dl">${l}</span><span class="dv">${fmtP(v)}</span><span class="ds">${s}</span></div>`).join("");
+  const fmax = Math.max(1,...STAGES.map(s=>cs[s]));
+  $("pp-funnel").innerHTML = STAGES.map(s=>`<div class="funnel-row"><span>${s} <b>${cs[s]}</b> <span style="color:var(--ink3)">${fmtP(pct(cs[s],cust.length))}</span></span><span class="track"><span class="bar" style="width:calc((100% - 44px) * ${cs[s]/fmax})"></span></span></div>`).join("");
+  const pend = cust.filter(r=>r.stage==="Pending");
+  $("pp-pend-t").textContent = `Pending breakdown (${pend.length} customers)`;
+  table($("pp-pend"), [{t:"Pending, waiting on"},{t:"Customers",n:1},{t:"% of Pending",n:1}],
+    countBy(pend, r=>r.pend, PENDING).filter(x=>x.value).sort((a,b)=>b.value-a.value).map(x=>({c:[x.label,x.value,fmtP(pct(x.value,pend.length))]})), {empty:"No pending customers in this range."});
+  const pprop = [...new Set(cust.map(r=>r.listing))].map(n=>{ const cc=cust.filter(r=>r.listing===n), s=stageOf(cc); return {n, t:cc.length, s, sr:pct(s.Scheduled+s.Viewed,cc.length), vr:pct(s.Viewed,cc.length), dr:pct(s.Drop,cc.length)}; })
+    .filter(p=>p.t>=3).sort((a,b)=>b.sr-a.sr || b.vr-a.vr);
+  table($("pp-prop"), [{t:"Property"},{t:"Customers",n:1},{t:"Schedule rate",n:1},{t:"View rate",n:1},{t:"Drop rate",n:1}],
+    pprop.map(p=>({c:[p.n,p.t,`<b>${fmtP(p.sr)}</b>`,fmtP(p.vr),fmtP(p.dr)]})), {empty:"No property has 3+ customer leads in this range."});
+
+  // People tab
+  $("pe-rep-t").textContent = `Repeat customers & hot buyers (${reps.length})`;
+  table($("pe-rep"), [{t:""},{t:"Customer"},{t:"Mobile"},{t:"Enquiries",n:1},{t:"Properties"},{t:"First → last"},{t:"Latest stage"}],
+    reps.slice(0,8).map(c=>({c:[c.hot?'<span class="flag hot">Hot</span>':"", `Customer #${c.id}`, mask(c.id), c.n, [...c.props].join(", "), `${fmtD(c.first)} → ${fmtD(c.last)}`, `<span class="stage">${c.stage}</span>`]})), {empty:"No repeat customers in this range."});
+  const ag = repeaters(rows.filter(r=>r.who==="Agent"));
+  $("pe-ag-t").textContent = `Repeat agents (${ag.length})`;
+  table($("pe-ag"), [{t:"Agent"},{t:"Mobile"},{t:"Enquiries",n:1},{t:"Properties"},{t:"First → last"}],
+    ag.slice(0,5).map(c=>({c:[`Agent #${c.id}`, mask(c.id), c.n, [...c.props].join(", "), `${fmtD(c.first)} → ${fmtD(c.last)}`]})), {empty:"No repeat agents in this range."});
+  const latest = rows.slice().sort((a,b)=>b.date-a.date).slice(0,12);
+  $("pe-list-t").textContent = `Lead list (${rows.length})`;
+  table($("pe-list"), [{t:"Date"},{t:"Property"},{t:"Lead"},{t:"Mobile"},{t:"Source"},{t:"Who"},{t:"Stage"},{t:"Note"}],
+    latest.map(r=>({c:[fmtD(r.date), r.listing, `${r.who} #${r.person}`, mask(r.person), r.source, r.who, `<span class="stage">${r.stage}</span>`, r.raw||""]})), {empty:"No leads match these filters."});
+
+  // Reasons tab
+  const withR = rows.filter(r=>r.reason);
+  const groups = countBy(withR, r=>r.reason).sort((a,b)=>b.value-a.value);
+  hbars($("r-chart"), groups, {long:true, of:"leads with a note"});
+  const trs = [];
+  groups.forEach(g=>{ trs.push({cls:"", c:[`<b>${g.label}</b>`, `<b>${g.value}</b>`]});
+    countBy(withR.filter(r=>r.reason===g.label), r=>r.raw).sort((a,b)=>b.value-a.value).forEach(x=> trs.push({c:[`<span style="color:var(--ink3);padding-left:14px;display:inline-block">“${x.label}”</span>`, x.value]})); });
+  table($("r-table"), [{t:"Group / raw note"},{t:"Count",n:1}], trs, {empty:"No notes in this range."});
+}
+function repeaters(rows){
+  const m = new Map(); rows.forEach(r=>{ const e=m.get(r.person)||{id:r.person,n:0,props:new Set(),first:r.date,last:r.date,stage:r.stage}; e.n++; e.props.add(r.listing); if(r.date<e.first) e.first=r.date; if(r.date>=e.last){ e.last=r.date; e.stage=r.stage; } m.set(r.person,e); });
+  return [...m.values()].filter(e=>e.n>1).map(e=>({...e, hot: e.n>=3 || (NOW-e.last)/86400000<=14})).sort((a,b)=>b.hot-a.hot || b.n-a.n || b.last-a.last);
+}
+function weekdays(rows){
+  const names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], days=monthDays(), cnt=Array(7).fill(0), occ=Array(7).fill(0);
+  days.forEach(d=>{ const w=(new Date(START.getTime()+d*86400000).getDay()+6)%7; occ[w]++; });
+  rows.forEach(r=>{ cnt[(r.dow+6)%7]++; });
+  return names.map((n,i)=>({label:n, value: occ[i]? cnt[i]/occ[i] : 0}));
+}
+
+// ---------- Listings view ----------
+[...new Set(LISTINGS.map(l=>l.type))].forEach(t=>{ const o=document.createElement("option"); o.textContent=t; $("ls-type").appendChild(o); });
+const enq = Object.fromEntries(countBy(LEADS, r=>r.listing).map(e=>[e.label,e.value]));
+function renderList(){
+  const q=$("q").value.trim().toLowerCase(), t=$("ls-type").value, s=$("ls-status").value;
+  const rows = LISTINGS.filter(l=>(!q||(l.name+" "+l.area).toLowerCase().includes(q)) && (!t||l.type===t) && (!s||l.status===s));
+  $("ls-count").textContent = `${rows.length} of ${LISTINGS.length} listings`;
+  $("cards").innerHTML = rows.map(l=>`<div class="lcard"><div class="top"><span class="chip ${l.status.toLowerCase()}">${l.status}</span><span style="font-size:12px;color:var(--ink3)">${enq[l.name]||0} enquiries</span></div>
+    <div class="name">${l.name}</div><div class="area">${l.area}${l.beds?` · ${l.beds} bed${l.beds>1?"s":""}`:""}</div><div class="nt">${l.note}</div>
+    <div class="meta"><span>${l.type} · ${l.ch.map(c=>"Site "+c).join(", ")}</span><span>${l.price}</span></div></div>`).join("") || '<div class="empty">No listings match that search.</div>';
+}
+
+// ---------- Wiring ----------
+const seenTabs = new Set(["overview"]);
+function markSeen(){
+  const btns = [...document.querySelectorAll(".tabs button")];
+  btns.forEach(b=>b.classList.toggle("seen", seenTabs.has(b.dataset.tab)));
+  const next = btns.find(b=>!seenTabs.has(b.dataset.tab));
+  btns.forEach(b=>b.classList.toggle("next", b===next));
+  $("guide-count").textContent = seenTabs.size >= btns.length ? "All 6 views explored ✓" : `${seenTabs.size} of ${btns.length} views explored`;
+}
+function goTab(name){
+  seenTabs.add(name); markSeen();
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===name));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("hidden", p.id!=="tab-"+name));
+  render();
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click", ()=>goTab(b.dataset.tab)));
+document.querySelectorAll(".ins").forEach(b=>b.addEventListener("click", ()=>goTab(b.dataset.go)));
+document.querySelectorAll(".views button").forEach(b=> b.addEventListener("click", ()=>{
+  document.querySelectorAll(".views button").forEach(x=>{ x.classList.toggle("on", x===b); x.setAttribute("aria-selected", x===b); });
+  $("view-dash").classList.toggle("hidden", b.dataset.view!=="dash"); $("view-list").classList.toggle("hidden", b.dataset.view!=="list");
+  if(b.dataset.view==="dash") render();
+}));
+["f-month","f-who"].forEach(id=>$(id).addEventListener("change", render));
+$("f-prop").addEventListener("input", render);
+$("f-clear").addEventListener("click", ()=>{ $("f-who").value="all"; $("f-prop").value=""; render(); });
+["q","ls-type","ls-status"].forEach(id=>$(id).addEventListener("input", renderList));
+window.addEventListener("resize", ()=>{ if(!$("view-dash").classList.contains("hidden")) render(); });
+render(); renderList(); markSeen();
+</script>
+<script>
+(function(){ var id = (document.title||"").indexOf("Tracker")>=0 ? "demo" : "calc";
+  var last=0;
+  function send(){
+    var h=0; [].forEach.call(document.body.children,function(c){ if(c.tagName==="SCRIPT"||getComputedStyle(c).position==="absolute") return; var r=c.getBoundingClientRect(); h=Math.max(h, r.bottom+window.scrollY); });
+    h=Math.ceil(h + (parseFloat(getComputedStyle(document.body).marginBottom)||0));
+    if(Math.abs(h-last)<3) return; last=h;
+    try{ parent.postMessage({embedId:id, h:h}, "*"); }catch(e){}
+  }
+  window.addEventListener("load", send); window.addEventListener("resize", send);
+  new MutationObserver(send).observe(document.body,{subtree:true,childList:true});
+  setTimeout(send,300);
+})();
+</script>
+</body>
+</html>

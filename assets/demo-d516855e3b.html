@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Incentive & Income Calculator — Demo</title>
+<style>
+  :root{
+    --paper:#FBF8F9; --paper2:#F4ECEF; --ink:#2B2320; --muted:#8A7A72;
+    --rose:#B8677A; --rose-soft:#F1D9DE; --gold:#AC7D88; --gold-soft:#EFE7F1;
+    --plum:#6B4A63; --line:#E8DDE2; --ok:#7C8F6E; --ok-bg:#EAF0E4;
+    --warn:#85586F; --warn-bg:#F7E6EC; --shadow:0 16px 40px rgba(43,35,32,.08);
+  }
+  *{box-sizing:border-box;}
+  html{font-size:13.5px;}
+  body{margin:0;font-family:'IBM Plex Sans',Arial,sans-serif;color:var(--ink);
+    background:linear-gradient(160deg,#FBF8F9,#F4ECEF 55%,#F4ECEF);}
+  .app{max-width:1280px;margin:auto;padding:22px 18px 40px;}
+  .hero{background:#fff;border:1px solid var(--line);border-radius:26px;padding:26px 28px;box-shadow:var(--shadow);}
+  .hero-top{display:flex;justify-content:space-between;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .eyebrow{display:inline-block;font-size:0.78rem;color:var(--rose);background:var(--rose-soft);
+    padding:5px 12px;border-radius:999px;font-weight:600;}
+  h1{font-size:1.7rem;margin:12px 0 8px;font-weight:600;}
+  .lede{color:var(--muted);max-width:60ch;margin:0;font-size:0.95rem;line-height:1.55;}
+  .badge{background:var(--ink);color:#fff;border-radius:20px;padding:16px 20px;min-width:220px;}
+  .badge .small{font-size:0.75rem;color:#D8C9C2;margin-bottom:6px;}
+  .badge .big{font-size:1.5rem;font-weight:600;}
+  .roles{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+  .role-btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;
+    font-size:0.86rem;font-weight:600;cursor:pointer;color:var(--ink);}
+  .role-btn.active{background:var(--rose);border-color:var(--rose);color:#fff;}
+
+  .summary{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:12px;margin:20px 0;}
+  .sum-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;}
+  .sum-card.main{background:var(--ink);color:#fff;}
+  .sum-label{font-size:0.74rem;color:var(--muted);font-weight:600;margin-bottom:6px;}
+  .sum-card.main .sum-label{color:#D8C9C2;}
+  .sum-value{font-size:1.35rem;font-weight:600;}
+
+  .layout{display:grid;grid-template-columns:290px 1fr;gap:16px;align-items:start;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px 20px;}
+  .panel h2{font-size:1rem;margin:0 0 14px;}
+  .field-group{padding:14px 0;border-top:1px dashed var(--line);}
+  .field-group:first-of-type{border-top:0;padding-top:0;}
+  .field-group h3{font-size:0.82rem;color:var(--rose);margin:0 0 10px;font-weight:600;}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:0.78rem;font-weight:600;color:#5C4F49;margin-bottom:5px;}
+  .field input,.field select{width:100%;border:1px solid var(--line);border-radius:12px;
+    padding:9px 10px;font-size:0.88rem;color:var(--ink);background:#fff;}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--rose);
+    box-shadow:0 0 0 3px var(--rose-soft);}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .hidden{display:none !important;}
+
+  .group{margin-top:20px;}
+  .group:first-child{margin-top:0;}
+  .group-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .group-title h3{font-size:0.95rem;margin:0;}
+  .group-count{font-size:0.72rem;color:var(--rose);background:var(--rose-soft);
+    border-radius:999px;padding:3px 9px;font-weight:600;}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px 16px;}
+  .card-top{display:flex;justify-content:space-between;gap:8px;}
+  .code{font-size:0.72rem;color:var(--muted);font-weight:600;}
+  .status{border-radius:999px;padding:4px 9px;font-size:0.7rem;font-weight:700;white-space:nowrap;}
+  .status.ok{background:var(--ok-bg);color:#5C7048;}
+  .status.warn{background:var(--warn-bg);color:#85586F;}
+  .card-title{font-weight:600;margin:10px 0 4px;font-size:0.92rem;line-height:1.35;}
+  .card-note{font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.4;}
+  .bar-track{height:8px;background:var(--paper2);border-radius:999px;overflow:hidden;margin-top:8px;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--rose));}
+  .progress-line{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted);}
+  .reward-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px;}
+  .reward-label{font-size:0.74rem;color:var(--muted);}
+  .reward-value{font-size:1.05rem;font-weight:700;color:var(--rose);}
+  .reward-value.zero{color:#B6A89F;}
+
+  .note{margin-top:20px;background:var(--plum);color:#fff;border-radius:16px;
+    padding:14px 18px;font-size:0.82rem;line-height:1.55;}
+
+  @media(max-width:620px){
+    .layout{grid-template-columns:1fr;}
+    .summary{grid-template-columns:1fr 1fr;}
+    .cards{grid-template-columns:1fr;}
+    .hero-top{display:block;}
+    .badge{margin-top:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section class="hero">
+    <div class="hero-top">
+      <div>
+        <span class="eyebrow">Demo · fictional company &amp; figures</span>
+        <h1>Incentive &amp; Income Calculator</h1>
+        <p class="lede">Enter production and activity numbers on the left to see estimated payouts by program,
+        total projected income, and progress on longer-term targets. Built to demonstrate the calculator
+        I designed and shipped for a 3,000+ person agency sales force — company name and all figures below
+        are fictional, standing in for the real incentive plan.</p>
+      </div>
+      <div class="badge">
+        <div class="small">Total estimated payout</div>
+        <div class="big" id="heroTotal">$0</div>
+      </div>
+    </div>
+    <div class="roles">
+      <button class="role-btn active" data-role="advisor">Advisor</button>
+      <button class="role-btn" data-role="leader">Team Leader</button>
+    </div>
+  </section>
+
+  <section class="summary">
+    <div class="sum-card main">
+      <div class="sum-label">Total estimated payout</div>
+      <div class="sum-value" id="totalIncome">$0</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Monthly production</div>
+      <div class="sum-value" id="currentProd">$0</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Programs paying out</div>
+      <div class="sum-value" id="paidCount">0</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Payout / production</div>
+      <div class="sum-value" id="ratio">0%</div>
+    </div>
+  </section>
+
+  <section class="layout">
+    <aside class="panel">
+      <h2>Your numbers</h2>
+
+      <div class="field-group">
+        <h3>Production this month</h3>
+        <div class="two">
+          <div class="field"><label>First half</label><input type="number" id="prod1" value="2000" min="0"></div>
+          <div class="field"><label>Second half</label><input type="number" id="prod2" value="0" min="0"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label>Policies, first half</label><input type="number" id="pol1" value="1" min="0"></div>
+          <div class="field"><label>Policies, second half</label><input type="number" id="pol2" value="0" min="0"></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <h3>Year to date</h3>
+        <div class="field"><label>Production before this month</label><input type="number" id="ytdBefore" value="5200" min="0"></div>
+      </div>
+
+      <div class="field-group advisor-only">
+        <h3>Activity this month</h3>
+        <div class="field"><label>Attended quarterly seminar?</label>
+          <select id="seminar"><option value="yes">Yes</option><option value="no" selected>No</option></select>
+        </div>
+        <div class="field"><label>Renewed / upgraded certification?</label>
+          <select id="cert"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+        </div>
+        <div class="field"><label>Opted into Momentum program?</label>
+          <select id="momentum"><option value="no" selected>No</option><option value="yes">Yes</option></select>
+        </div>
+      </div>
+
+      <div class="field-group leader-only hidden">
+        <h3>Team activity</h3>
+        <div class="two">
+          <div class="field"><label>New recruits, total</label><input type="number" id="newRecruits" value="3" min="0"></div>
+          <div class="field"><label>New &amp; active</label><input type="number" id="newActive" value="2" min="0"></div>
+        </div>
+        <div class="field"><label>Team members reactivated</label><input type="number" id="reactivated" value="1" min="0"></div>
+        <div class="field"><label>Direct team production, this month</label><input type="number" id="teamProd" value="4500" min="0"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="group">
+        <div class="group-title"><h3>Paying out now</h3><span class="group-count" id="countA">0 programs</span></div>
+        <div class="cards" id="groupPaying"></div>
+      </div>
+      <div class="group">
+        <div class="group-title"><h3>Short-term, in progress</h3><span class="group-count" id="countB">0 programs</span></div>
+        <div class="cards" id="groupProgress"></div>
+      </div>
+      <div class="group">
+        <div class="group-title"><h3>Long-term tracking</h3><span class="group-count" id="countC">0 programs</span></div>
+        <div class="cards" id="groupLongTerm"></div>
+      </div>
+
+      <div class="note">
+        <b>About this demo:</b> the numbers, thresholds, and program names here are invented for illustration.
+        The real version of this tool runs on my former employer's actual incentive-plan rules and is not
+        publicly shareable, since it reflects confidential compensation-plan details.
+      </div>
+    </main>
+  </section>
+</div>
+
+<script>
+let role = 'advisor';
+
+function num(id){ return Number(document.getElementById(id).value) || 0; }
+function sel(id){ return document.getElementById(id).value; }
+function money(v){ return '$' + Math.round(v).toLocaleString('en-US'); }
+function pct(v){ return Math.round(Math.min(Math.max(v,0),1)*100); }
+
+function setRole(r){
+  role = r;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === r));
+  document.querySelectorAll('.advisor-only').forEach(e => e.classList.toggle('hidden', r !== 'advisor'));
+  document.querySelectorAll('.leader-only').forEach(e => e.classList.toggle('hidden', r !== 'leader'));
+  render();
+}
+
+function productionBonus(prod, pol1, pol2){
+  if (prod >= 10000) return 0.15 * prod;
+  if (prod >= 5000) return 0.10 * prod;
+  return 150 * pol1 + 100 * pol2;
+}
+
+function buildPrograms(){
+  const prod = num('prod1') + num('prod2');
+  const ytd = num('ytdBefore') + prod;
+
+  let paying = [], progress = [], longTerm = [];
+
+  if (role === 'advisor'){
+    const base = productionBonus(prod, num('pol1'), num('pol2'));
+    paying.push({code:'NB-01', title:'New Business Bonus', note:'Tiered on this month\'s production', amount:base});
+
+    const reactivation = (sel('seminar')==='yes' ? 100 : 0) + (sel('cert')==='yes' ? 80 : 0);
+    paying.push({code:'RE-02', title:'Reactivation Incentive', note:'Seminar attendance and certification', amount:reactivation});
+
+    const momentumHit = sel('momentum')==='yes' && prod >= 3000;
+    paying.push({code:'MO-03', title:'Momentum Bonus', note:'Opt-in, production ≥ $3,000', amount: momentumHit ? 300 : 0,
+      progressOverride: !momentumHit ? Math.min(prod/3000,1) : undefined});
+
+    const fastStartHit = prod >= 1500;
+    progress.push({code:'FS-04', title:'Fast Start Challenge', note:'At least one policy at $1,500+ production',
+      status: fastStartHit ? 'On track' : 'In progress', progress: Math.min(prod/1500,1)});
+
+    longTerm.push({code:'AT-05', title:'Annual Excellence Tracker', note:'Year-to-date production toward annual recognition',
+      progress: Math.min(ytd/24000,1)});
+    longTerm.push({code:'AT-06', title:'Elite Circle Progress', note:'Year-to-date production toward top-tier recognition',
+      progress: Math.min(ytd/100000,1)});
+  } else {
+    const recruit = num('newRecruits') * 100 + num('newActive') * 100;
+    paying.push({code:'RC-01', title:'Recruitment Bonus', note:'New recruits and new-and-active count', amount:recruit});
+
+    const teamReact = num('reactivated') * 50;
+    paying.push({code:'RE-02', title:'Team Reactivation Bonus', note:'Reactivated team members this month', amount:teamReact});
+
+    const overrideHit = num('teamProd') >= 4000;
+    paying.push({code:'LO-03', title:'Leadership Override', note:'Direct team production ≥ $4,000', amount: overrideHit ? 500 : 0,
+      progressOverride: !overrideHit ? Math.min(num('teamProd')/4000,1) : undefined});
+
+    progress.push({code:'FS-04', title:'Fast Start Challenge — Leader', note:'Team has at least one new or reactivated member',
+      status: (num('newRecruits')>=1 || num('reactivated')>=1) ? 'On track' : 'In progress',
+      progress: (num('newRecruits')>=1 || num('reactivated')>=1) ? 1 : 0});
+
+    longTerm.push({code:'AT-05', title:'Annual Excellence Tracker — Team', note:'Year-to-date team production toward annual recognition',
+      progress: Math.min(ytd/60000,1)});
+    longTerm.push({code:'AT-06', title:'Leadership Growth Tracker', note:'Year-to-date team production toward leadership recognition',
+      progress: Math.min(ytd/240000,1)});
+  }
+
+  return {paying, progress, longTerm, prod, ytd};
+}
+
+function rewardCard(p){
+  const showProgress = typeof p.progressOverride === 'number';
+  return `<article class="card">
+    <div class="card-top"><span class="code">${p.code}</span>
+      <span class="status ${p.amount>0?'ok':'warn'}">${p.amount>0?'Paying out':'Not yet earned'}</span></div>
+    <div class="card-title">${p.title}</div>
+    <div class="card-note">${p.note}</div>
+    ${showProgress ? `<div class="progress-line"><span>Progress</span><b>${pct(p.progressOverride)}%</b></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(p.progressOverride)}%"></div></div>` : ''}
+    <div class="reward-row"><div class="reward-label">Estimated payout</div>
+      <div class="reward-value ${p.amount>0?'':'zero'}">${p.amount>0?money(p.amount):'—'}</div></div>
+  </article>`;
+}
+
+function progressCard(p){
+  return `<article class="card">
+    <div class="card-top"><span class="code">${p.code}</span>
+      <span class="status ${p.status==='On track'?'ok':'warn'}">${p.status}</span></div>
+    <div class="card-title">${p.title}</div>
+    <div class="card-note">${p.note}</div>
+    <div class="progress-line"><span>Progress</span><b>${pct(p.progress)}%</b></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct(p.progress)}%"></div></div>
+  </article>`;
+}
+
+function longTermCard(p){
+  return `<article class="card">
+    <div class="card-top"><span class="code">${p.code}</span><span class="status warn">Tracking</span></div>
+    <div class="card-title">${p.title}</div>
+    <div class="card-note">${p.note}</div>
+    <div class="progress-line"><span>Progress</span><b>${pct(p.progress)}%</b></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct(p.progress)}%"></div></div>
+  </article>`;
+}
+
+function render(){
+  const {paying, progress, longTerm, prod} = buildPrograms();
+  const total = paying.reduce((s,p) => s + (p.amount||0), 0);
+  const paidCount = paying.filter(p => p.amount > 0).length;
+
+  document.getElementById('heroTotal').textContent = money(total);
+  document.getElementById('totalIncome').textContent = money(total);
+  document.getElementById('currentProd').textContent = money(prod);
+  document.getElementById('paidCount').textContent = paidCount;
+  document.getElementById('ratio').textContent = (prod>0 ? Math.round((total/prod)*100) : 0) + '%';
+
+  document.getElementById('groupPaying').innerHTML = paying.map(rewardCard).join('');
+  document.getElementById('groupProgress').innerHTML = progress.map(progressCard).join('');
+  document.getElementById('groupLongTerm').innerHTML = longTerm.map(longTermCard).join('');
+  document.getElementById('countA').textContent = paying.length + ' programs';
+  document.getElementById('countB').textContent = progress.length + ' programs';
+  document.getElementById('countC').textContent = longTerm.length + ' programs';
+}
+
+document.querySelectorAll('.role-btn').forEach(b => b.addEventListener('click', () => setRole(b.dataset.role)));
+document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', render));
+render();
+</script>
+<script>
+(function(){ var id = (document.title||"").indexOf("Tracker")>=0 ? "demo" : "calc";
+  var last=0;
+  function send(){
+    var h=0; [].forEach.call(document.body.children,function(c){ if(c.tagName==="SCRIPT"||getComputedStyle(c).position==="absolute") return; var r=c.getBoundingClientRect(); h=Math.max(h, r.bottom+window.scrollY); });
+    h=Math.ceil(h + (parseFloat(getComputedStyle(document.body).marginBottom)||0));
+    if(Math.abs(h-last)<3) return; last=h;
+    try{ parent.postMessage({embedId:id, h:h}, "*"); }catch(e){}
+  }
+  window.addEventListener("load", send); window.addEventListener("resize", send);
+  new MutationObserver(send).observe(document.body,{subtree:true,childList:true});
+  setTimeout(send,300);
+})();
+</script>
+</body>
+</html>
